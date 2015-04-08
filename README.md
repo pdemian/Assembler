@@ -15,6 +15,7 @@ clone, and run the solution to build the executable
 
 ## Usage
 Use with the linker project for the following
+
 	//Assemble
 	assembler.exe tests/testN.asm -o testN.ci
 	//And link
