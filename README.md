@@ -9,6 +9,11 @@ The other parts will be added onto github later on as they are still a major wor
 
 Technically this project serves no purpose just yet, other than maybe showcasing how to build a .exe from scratch.
 
+The assembler has a limited instruction set for language building with a compiler rather than a full on assembler. Both GCC and Visual Studio do the exact same thing.
+
+At the moment, the assembler uses the most general instruction available to make the code less complex. Optimizations may come at a later time.
+
+x87 floating point operations are also not yet implemented.
 
 ## Installation
 clone, and run the solution to build the executable
@@ -18,8 +23,10 @@ Use with the linker project for the following
 
 	//Assemble
 	assembler.exe tests/testN.asm -o testN.ci
-	//And link
+	//Link
 	linker.exe testN.ci -o testN.exe
+	//And run
+	testN.exe
 	
 This will (read: should) produce an executable file.
 
