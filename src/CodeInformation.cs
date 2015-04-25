@@ -25,12 +25,25 @@ namespace Assembler
             public int Ordinal;
             public string FunctionName;
             public List<int> Replacements;
+
+            public FunctionInformation()
+            {
+                Ordinal = 0;
+                FunctionName = null;
+                Replacements = null;
+            }
         }
 
         public class StringTableInformation
         {
             public string Text;
             public List<int> Replacements;
+
+            public StringTableInformation()
+            {
+                Text = null;
+                Replacements = null;
+            }
         }
 
         public List<SymbolInformation> SymbolInfo;
@@ -41,6 +54,11 @@ namespace Assembler
         {
             StringTable = new List<StringTableInformation>();
             SymbolInfo = new List<SymbolInformation>();
+            Code = null;
+            EntryPoint = 0;
+            FileAlignment = 0;
+            SectionAlignment = 0;
+            Subsystem = 0;
         }
     }
 }

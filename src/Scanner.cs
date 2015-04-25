@@ -111,10 +111,8 @@ namespace Assembler
                     {
                         for (next_char = reader.Read();
                             reader.Peek() > -1 && next_char != '\n';
-                            next_char = reader.Read())
-                        {
-                            ;
-                        }
+                            next_char = reader.Read()) ;
+
                         lineCounter++;
                         linePosition = 0;
                     }

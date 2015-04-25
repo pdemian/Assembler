@@ -317,7 +317,7 @@ namespace Assembler
                         if (tokens[index].Equals("*"))
                         {
                             Expect(typeof (uint), "Syntax error");
-                            shift = (int) (tokens[index].obj as uint?);
+                            shift = (int) ((tokens[index].obj as uint?) ?? 0);
                             if (shift != 1 && shift != 2 && shift != 4 && shift != 8)
                             {
                                 throw new Exception(FormatError("Invalid shift. Expected 1,2,4,8", tokens[index].lineNum,
@@ -332,7 +332,7 @@ namespace Assembler
                         if (tokens[index].Equals("+"))
                         {
                             Expect(typeof (uint), "Syntax error");
-                            imm = (int) (tokens[index].obj as uint?);
+                            imm = (int) ((tokens[index].obj as uint?) ?? 0);
                             index++;
                         }
 
@@ -341,7 +341,7 @@ namespace Assembler
                     else if (tokens[index].type == typeof (uint))
                     {
                         //immediate
-                        imm = (int) (tokens[index].obj as uint?);
+                        imm = (int) ((tokens[index].obj as uint?) ?? 0);
                         imm *= (inverse ? -1 : 1);
 
                         Expect("]", "Syntax error");
@@ -408,7 +408,7 @@ namespace Assembler
                         tokens[index].linePos));
                 }
 
-                arg.value = (int) (tokens[index].obj as uint?);
+                arg.value = (int) ((tokens[index].obj as uint?) ?? 0);
 
                 if (arg.value <= 255)
                 {
@@ -427,7 +427,7 @@ namespace Assembler
                         tokens[index].linePos));
                 }
 
-                arg.value = (int) (tokens[index].obj as int?);
+                arg.value = ((tokens[index].obj as int?) ?? 0);
 
                 if (arg.value <= 255)
                 {
@@ -441,7 +441,7 @@ namespace Assembler
             else if (tokens[index].type == typeof (float) || tokens[index].type == typeof (double))
             {
                 arg.type = x86InstructionSet.InstructionArg.IMM32;
-                arg.value = BitConverter.ToInt32(BitConverter.GetBytes((float) (tokens[index].obj as float?)), 0);
+                arg.value = BitConverter.ToInt32(BitConverter.GetBytes(((tokens[index].obj as float?) ?? 0)), 0);
             }
             else
             {
