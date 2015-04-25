@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace Assembler
 {
-    class CodeInformation
+    internal class CodeInformation
     {
         public byte[] Code;
 
@@ -23,12 +19,14 @@ namespace Assembler
             public string LibraryName;
             public List<FunctionInformation> Functions;
         }
+
         public class FunctionInformation
         {
             public int Ordinal;
             public string FunctionName;
             public List<int> Replacements;
         }
+
         public class StringTableInformation
         {
             public string Text;

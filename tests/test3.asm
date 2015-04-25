@@ -15,29 +15,41 @@ main:
 	sub	esp, 272
 	
 	;print Type in your first name
-	mov	[esp], String1
+	push String1
 	call printf
-	
+	add esp,4
+    
 	;Get name
-	mov	eax, _iob
-	mov	[esp+8], eax
-	mov	[esp+4], 256
-	lea	eax, [esp+16]
-	mov	[esp], eax
-	call fgets
-	
+    ;fgets(c, 256, stdin);
+    call __iob_func
+    mov ecx, 0x20
+    mov edx, 0
+    imul edx, ecx
+    add eax, edx
+    ;stdin
+    push eax
+    ;256
+    push 0x100
+    ;c
+    lea eax, [ebp-264]
+    push eax
+    call fgets
+    add esp, 12
+    
 	;print Your name is %d characters in length
-	lea	eax, [esp+16]
-	mov	[esp], eax
+	lea	eax, [ebp-264]
+	push eax
 	call strlen
+    add esp, 4
 	sub eax, 1
-	mov	[esp+4], eax
-	mov	[esp], String2
-	call printf
-	
+    ;%d
+	push eax
+    ;string
+    push String2
+    call printf
+	add esp, 8
+    
 	xor eax,eax
 	leave
 	ret
-	
-	
 	
