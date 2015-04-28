@@ -23,9 +23,6 @@ namespace Assembler
 
         public static void Main(string[] args)
         {
-            //debug
-            args = new[] {"../../tests/test3.asm"};
-
             ProgramArgs arguments = new ProgramArgs();
             Assembler assembler = null;
             try
