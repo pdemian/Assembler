@@ -186,19 +186,17 @@ namespace Assembler
 
                                 if (next_char == 'x')
                                 {
-                                    int val = ReadHexadecimal(reader, ref linePosition, ref lineCounter, '"');
-                                    if (val < 0)
-                                    {
-                                        str.Append("\\x0");
-                                    }
-                                    else
-                                    {
-                                        str.AppendFormat("\\x{0:X}", val);
-                                    }
+                                    int val = ReadHexadecimal(reader, ref linePosition, ref lineCounter, false);
+                                    str.Append((char)val);
+                                }
+                                else if (next_char == 'u')
+                                {
+                                    int val = ReadHexadecimal(reader, ref linePosition, ref lineCounter, true);
+                                    str.Append((char)val);
                                 }
                                 else if (next_char == '\'' || next_char == '"' || next_char == '\\')
                                 {
-                                    str.AppendFormat("\\{0}", (char) next_char);
+                                    str.Append((char) next_char);
                                 }
                                 else
                                 {
@@ -210,12 +208,8 @@ namespace Assembler
                                             string.Format("Unknown control code '\\{0}'. Replacing with '{0}'.", ch_code),
                                             lineCounter,
                                             linePosition));
-                                        str.Append((char) next_char);
                                     }
-                                    else
-                                    {
-                                        str.AppendFormat("\\{0}", (char) next_char);
-                                    }
+                                    str.Append(ch_code);
                                 }
                             }
                             else
@@ -445,11 +439,11 @@ namespace Assembler
             }
         }
 
-        private int ReadHexadecimal(StreamReader reader, ref int linePosition, ref int lineCounter, char endChar)
+        private int ReadHexadecimal(StreamReader reader, ref int linePosition, ref int lineCounter, bool wide_char)
         {
-            int char_size = 2; //4 for wide chars (not yet supported)
+            int char_size = (wide_char ? 4 : 2);
 
-            string s = "";
+            StringBuilder sb = new StringBuilder();
             int j;
             int c;
 
@@ -457,62 +451,35 @@ namespace Assembler
             for (j = 0; j < char_size; j++)
             {
                 c = reader.Peek();
-                if (c < 0 || c == endChar)
+                if (c < 0)
+                {
+                    throw new Exception(FormatError("Unexpected EOF", lineCounter, linePosition));
+                }
+                if (!((c - '0' >= 0 && c - '0' <= 9) ||
+                      (c - 'a' >= 0 && c - 'a' <= 5) ||
+                      (c - 'A' >= 0 && c - 'A' <= 5)))
+                {
+                    break;
+                }
+                if (c == '"')
                 {
                     break;
                 }
 
                 linePosition++;
 
-                s += (char) reader.Read();
+                sb.Append((char) reader.Read());
             }
             if (j == 0)
             {
                 warnings.Add(FormatWarning(
-                    "Expected hexadecimal constant after \'\\x\'. Assuming 0.",
+                    "Expected hexadecimal constant after " + (wide_char ? "'\\u'": "'\\x'") + ". Assuming 0.",
                     lineCounter,
                     linePosition));
-                return -1;
+                return 0;
             }
 
-            return Convert.ToInt32(s, 16);
-        }
-
-        private int GetHexValue(byte p)
-        {
-            switch ((char) p)
-            {
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                    return p - '0';
-                case 'A':
-                case 'a':
-                    return 10;
-                case 'b':
-                case 'B':
-                    return 11;
-                case 'c':
-                case 'C':
-                    return 12;
-                case 'd':
-                case 'D':
-                    return 13;
-                case 'e':
-                case 'E':
-                    return 14;
-                case 'f':
-                case 'F':
-                    return 15;
-                default:
-                    return 0;
-            }
+            return Convert.ToInt32(sb.ToString(), 16);
         }
 
         private bool IsValidSymbol(int c)
