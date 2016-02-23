@@ -27,19 +27,6 @@ namespace Assembler
 
         public CodeInformation ci;
 
-        internal class UnprocessedInstruction
-        {
-            public bool isLabel;
-            public string ident;
-            public x86InstructionSet.Instruction instruction;
-            public x86InstructionSet.Arg arg0;
-            public x86InstructionSet.Arg arg1;
-            public x86InstructionSet.Arg arg2;
-            public int offset;
-
-            public Token main_token;
-        }
-
 
         public Assembler(string filename)
         {
@@ -106,107 +93,100 @@ namespace Assembler
             Token dataStartPosition = null;
 
 
-            try
+            for (; index < tokens.Count; index++)
             {
-                for (; index < tokens.Count; index++)
+                //expect a directive marker '.'
+                if (!tokens[index].Equals("."))
                 {
-                    //expect a directive marker '.'
-                    if (!tokens[index].Equals("."))
+                    warnings.Add(FormatWarning("Expected a directive. Ignoring line.", tokens[index].lineNum,
+                        tokens[index].linePos));
+                    int this_line = tokens[index].lineNum;
+                    while (tokens.Count + 1 > index && tokens[index + 1].lineNum <= this_line)
                     {
-                        warnings.Add(FormatWarning("Expected a directive. Ignoring line.", tokens[index].lineNum,
-                            tokens[index].linePos));
+                        index++;
+                    }
+                    continue;
+                }
+                index++;
+
+
+                switch (tokens[index].str_value)
+                {
+                    case "lang":
+                        //At the moment only x86 is available
+                        if (tokens.Count + 1 <= index)
+                        {
+                            throw new Exception(FormatError("Unexpected EOF.", tokens[index].lineNum,
+                                tokens[index].linePos));
+                        }
+                        if (!tokens[index + 1].Equals("x86"))
+                        {
+                            throw new Exception(
+                                string.Format(
+                                    "{0}: Fatal Error: Language \"{1}\" is unsupported. Currently only \"x86\" is supported.",
+                                    shortname, tokens[index + 1]));
+                        }
+
+                        lang = tokens[++index];
+                        break;
+                    case "subsystem":
+                        Expect(typeof (StringBuilder), "Expected a valid subsystem");
+                        if (!tokens[index].Equals("GUI") && !tokens[index].Equals("CUI"))
+                        {
+                            warnings.Add("Invalid subsystem. Assuming CUI.");
+                        }
+                        ci.Subsystem = (ushort) (tokens[index].Equals("GUI") ? 2 : 3);
+                        break;
+                    case "file":
+                        Expect(typeof (StringBuilder), "Expected a valid filename", fatal: false);
+                        filen = tokens[index];
+                        break;
+                    case "include":
+                        Expect(typeof (StringBuilder), "Expected a valid library.");
+                        imports.Add(tokens[index]);
+                        break;
+                    case "text":
+                        if (parsedText)
+                        {
+                            throw new Exception(
+                                FormatError(
+                                    string.Format(
+                                        "Expected only a single text section. Previous text section started at: {0}:{1}",
+                                        textStartPosition.lineNum, textStartPosition.linePos),
+                                    tokens[index - 1].lineNum, tokens[index - 1].linePos));
+                        }
+                        parsedText = true;
+                        textStartPosition = tokens[index - 1];
+
+                        ParseCode();
+
+                        break;
+                    case "data":
+                        if (parsedData)
+                        {
+                            throw new Exception(
+                                FormatError(
+                                    string.Format(
+                                        "Expected only a single data section. Previous data section started at: {0}:{1}",
+                                        dataStartPosition.lineNum, dataStartPosition.linePos),
+                                    tokens[index - 1].lineNum, tokens[index - 1].linePos));
+                        }
+                        parsedData = true;
+                        dataStartPosition = tokens[index - 1];
+
+                        ParseData();
+
+                        break;
+                    default:
+                        warnings.Add(FormatWarning("Expected a valid directive. Ignoring line.",
+                            tokens[index - 1].lineNum, tokens[index - 1].linePos));
                         int this_line = tokens[index].lineNum;
                         while (tokens.Count + 1 > index && tokens[index + 1].lineNum <= this_line)
                         {
                             index++;
                         }
-                        continue;
-                    }
-                    index++;
-
-
-                    switch (tokens[index].str_value)
-                    {
-                        case "lang":
-                            //At the moment only x86 is available
-                            if (tokens.Count + 1 <= index)
-                            {
-                                throw new Exception(FormatError("Unexpected EOF.", tokens[index].lineNum,
-                                    tokens[index].linePos));
-                            }
-                            if (!tokens[index + 1].Equals("x86"))
-                            {
-                                throw new Exception(
-                                    string.Format(
-                                        "{0}: Fatal Error: Language \"{1}\" is unsupported. Currently only \"x86\" is supported.",
-                                        shortname, tokens[index + 1]));
-                            }
-
-                            lang = tokens[++index];
-                            break;
-                        case "subsystem":
-                            Expect(typeof (StringBuilder), "Expected a valid subsystem");
-                            if (!tokens[index].Equals("GUI") && !tokens[index].Equals("CUI"))
-                            {
-                                warnings.Add("Invalid subsystem. Assuming CUI.");
-                            }
-                            ci.Subsystem = (ushort) (tokens[index].Equals("GUI") ? 2 : 3);
-                            break;
-                        case "file":
-                            Expect(typeof (StringBuilder), "Expected a valid filename", fatal: false);
-                            filen = tokens[index];
-                            break;
-                        case "include":
-                            Expect(typeof (StringBuilder), "Expected a valid library.");
-                            imports.Add(tokens[index]);
-                            break;
-                        case "text":
-                            if (parsedText)
-                            {
-                                throw new Exception(
-                                    FormatError(
-                                        string.Format(
-                                            "Expected only a single text section. Previous text section started at: {0}:{1}",
-                                            textStartPosition.lineNum, textStartPosition.linePos),
-                                        tokens[index - 1].lineNum, tokens[index - 1].linePos));
-                            }
-                            parsedText = true;
-                            textStartPosition = tokens[index - 1];
-
-                            ParseCode();
-
-                            break;
-                        case "data":
-                            if (parsedData)
-                            {
-                                throw new Exception(
-                                    FormatError(
-                                        string.Format(
-                                            "Expected only a single data section. Previous data section started at: {0}:{1}",
-                                            dataStartPosition.lineNum, dataStartPosition.linePos),
-                                        tokens[index - 1].lineNum, tokens[index - 1].linePos));
-                            }
-                            parsedData = true;
-                            dataStartPosition = tokens[index - 1];
-
-                            ParseData();
-
-                            break;
-                        default:
-                            warnings.Add(FormatWarning("Expected a valid directive. Ignoring line.",
-                                tokens[index - 1].lineNum, tokens[index - 1].linePos));
-                            int this_line = tokens[index].lineNum;
-                            while (tokens.Count + 1 > index && tokens[index + 1].lineNum <= this_line)
-                            {
-                                index++;
-                            }
-                            break;
-                    }
+                        break;
                 }
-            }
-            catch (Exception ex)
-            {
-                throw;
             }
         }
 
@@ -279,9 +259,9 @@ namespace Assembler
             }
         }
 
-        private x86InstructionSet.Arg ParseArg()
+        private Arg ParseArg()
         {
-            var arg = new x86InstructionSet.Arg();
+            var arg = new Arg();
 
             if (tokens[index].Equals("["))
             {
@@ -367,14 +347,14 @@ namespace Assembler
                     throw new Exception(FormatError("Invalid operand", tokens[index].lineNum, tokens[index].linePos));
                 }
 
-                arg.type = x86InstructionSet.InstructionArg.OFFSET;
-                var regist = x86InstructionSet.Registers.ReverseLookup(firstValue);
+                arg.type = InstructionArg.OFFSET;
+                var regist = Registers.ReverseLookup(firstValue);
                 if (regist == null)
                 {
                     throw new Exception(FormatError("Expected valid register", tokens[index].lineNum,
                         tokens[index].linePos));
                 }
-                if (regist.size != x86InstructionSet.InstructionArg.REG32)
+                if (regist.size != InstructionArg.REG32)
                 {
                     throw new Exception(FormatError("Expected a 32 bit register.", tokens[index].lineNum,
                         tokens[index].linePos));
@@ -383,13 +363,13 @@ namespace Assembler
                 arg.value = regist.regfield;
                 if (secondValue != null)
                 {
-                    regist = x86InstructionSet.Registers.ReverseLookup(secondValue);
+                    regist = Registers.ReverseLookup(secondValue);
                     if (regist == null)
                     {
                         throw new Exception(FormatError("Expected valid register", tokens[index].lineNum,
                             tokens[index].linePos));
                     }
-                    if (regist.size != x86InstructionSet.InstructionArg.REG32)
+                    if (regist.size != InstructionArg.REG32)
                     {
                         throw new Exception(FormatError("Expected a 32 bit register.", tokens[index].lineNum,
                             tokens[index].linePos));
@@ -412,11 +392,11 @@ namespace Assembler
 
                 if (arg.value <= 255)
                 {
-                    arg.type = x86InstructionSet.InstructionArg.IMM8;
+                    arg.type = InstructionArg.IMM8;
                 }
                 else
                 {
-                    arg.type = x86InstructionSet.InstructionArg.IMM32;
+                    arg.type = InstructionArg.IMM32;
                 }
             }
             else if (tokens[index].type == typeof (int) || tokens[index].type == typeof (long))
@@ -431,35 +411,35 @@ namespace Assembler
 
                 if (arg.value <= 255)
                 {
-                    arg.type = x86InstructionSet.InstructionArg.IMM8;
+                    arg.type = InstructionArg.IMM8;
                 }
                 else
                 {
-                    arg.type = x86InstructionSet.InstructionArg.IMM32;
+                    arg.type = InstructionArg.IMM32;
                 }
             }
             else if (tokens[index].type == typeof (float) || tokens[index].type == typeof (double))
             {
-                arg.type = x86InstructionSet.InstructionArg.IMM32;
+                arg.type = InstructionArg.IMM32;
                 arg.value = BitConverter.ToInt32(BitConverter.GetBytes(((tokens[index].obj as float?) ?? 0)), 0);
             }
             else
             {
                 //Expect either a register or label
                 string ident = tokens[index];
-                var reg = x86InstructionSet.Registers.ReverseLookup(ident);
+                var reg = Registers.ReverseLookup(ident);
                 if (reg == null)
                 {
                     //either a label, string, function
                     //really hacky at the moment
                     if (unresolvedReferences.ContainsKey(ident))
                     {
-                        arg.type = x86InstructionSet.InstructionArg.LABEL;
+                        arg.type = InstructionArg.LABEL;
                         arg.ident = ident;
                     }
                     else
                     {
-                        arg.type = x86InstructionSet.InstructionArg.LABEL;
+                        arg.type = InstructionArg.LABEL;
                         arg.ident = ident;
                         unresolvedReferences.Add(ident, null);
                     }
@@ -582,96 +562,96 @@ namespace Assembler
             bool found_main = false;
             //first calculate byte offsets for everything
             offset = 0;
-            for (int i = 0; i < unprocessed_code.Count; i++)
+            foreach (UnprocessedInstruction instruction in unprocessed_code)
             {
-                if (unprocessed_code[i].isLabel)
+                if (instruction.isLabel)
                 {
-                    if (unprocessed_code[i].ident.Equals("main"))
+                    if (instruction.ident.Equals("main"))
                     {
                         ci.EntryPoint = (uint) offset;
                         found_main = true;
                     }
 
-                    labels.Add(unprocessed_code[i].ident, offset);
+                    labels.Add(instruction.ident, offset);
                 }
                 else
                 {
-                    for (int j = 0; j < x86InstructionSet.Instructions.x86Instructions.Length; j++)
+                    foreach (Instruction instruct in x86InstructionSet.x86Instructions)
                     {
-                        if (unprocessed_code[i].ident.Equals(x86InstructionSet.Instructions.x86Instructions[j].mnemonic))
+                        if (instruction.ident.Equals(instruct.mnemonic))
                         {
-                            unprocessed_code[i].instruction = x86InstructionSet.Instructions.x86Instructions[j];
+                            instruction.instruction = instruct;
                             break;
                         }
                     }
 
-                    if (unprocessed_code[i].instruction == null)
+                    if (instruction.instruction == null)
                     {
-                        throw new Exception(FormatError("Invalid opcode.", unprocessed_code[i].main_token.lineNum,
-                            unprocessed_code[i].main_token.linePos));
+                        throw new Exception(FormatError("Invalid opcode.", instruction.main_token.lineNum,
+                            instruction.main_token.linePos));
                     }
 
-                    if (!isValidArgument(unprocessed_code[i].arg0, unprocessed_code[i].instruction.arg1)
-                        || !isValidArgument(unprocessed_code[i].arg1, unprocessed_code[i].instruction.arg2)
-                        || !isValidArgument(unprocessed_code[i].arg2, unprocessed_code[i].instruction.arg3))
+                    if (!isValidArgument(instruction.arg0, instruction.instruction.arg1)
+                        || !isValidArgument(instruction.arg1, instruction.instruction.arg2)
+                        || !isValidArgument(instruction.arg2, instruction.instruction.arg3))
                     {
-                        throw new Exception(FormatError("Invalid operand", unprocessed_code[i].main_token.lineNum,
-                            unprocessed_code[i].main_token.linePos));
+                        throw new Exception(FormatError("Invalid operand", instruction.main_token.lineNum,
+                            instruction.main_token.linePos));
                     }
 
                     //I swear officer, this hack isn't mine. Please don't arrest me.
                     //need to replace for external calls
-                    if (unprocessed_code[i].ident.Equals("call"))
+                    if (instruction.ident.Equals("call"))
                     {
-                        if (unprocessed_code[i].arg0.ident != null)
+                        if (instruction.arg0.ident != null)
                         {
-                            if (unresolvedReferences[unprocessed_code[i].arg0.ident] != null)
+                            if (unresolvedReferences[instruction.arg0.ident] != null)
                             {
                                 //external code
-                                unprocessed_code[i].arg0.offsetValue = 1;
+                                instruction.arg0.offsetValue = 1;
 
-                                unresolvedReferences[unprocessed_code[i].arg0.ident].Replacements.Add(offset + 2);
+                                unresolvedReferences[instruction.arg0.ident].Replacements.Add(offset + 2);
                             }
                         }
                     }
-                    else if (unprocessed_code[i].ident.Equals("mov"))
+                    else if (instruction.ident.Equals("mov"))
                     {
-                        if (unprocessed_code[i].arg1.ident != null)
+                        if (instruction.arg1.ident != null)
                         {
                             //can be either a string, label, or external function
-                            if (unresolvedReferences[unprocessed_code[i].arg1.ident] != null)
+                            if (unresolvedReferences[instruction.arg1.ident] != null)
                             {
-                                unprocessed_code[i].arg1.offsetValue = 1;
+                                instruction.arg1.offsetValue = 1;
                                 //external function
-                                unresolvedReferences[unprocessed_code[i].arg1.ident].Replacements.Add(offset + 2);
+                                unresolvedReferences[instruction.arg1.ident].Replacements.Add(offset + 2);
                             }
-                            else if (stringTable.ContainsKey(unprocessed_code[i].arg1.ident))
+                            else if (stringTable.ContainsKey(instruction.arg1.ident))
                             {
-                                unprocessed_code[i].arg1.offsetValue = 1;
+                                instruction.arg1.offsetValue = 1;
                                 //string table
-                                stringTable[unprocessed_code[i].arg1.ident].Item2.Add(offset + 2);
+                                stringTable[instruction.arg1.ident].Item2.Add(offset + 2);
                             }
                             //labels handled elsewhere
                         }
                     }
                     //replace string table calls
-                    else if (unprocessed_code[i].ident.Equals("push"))
+                    else if (instruction.ident.Equals("push"))
                     {
-                        if (unprocessed_code[i].arg0.ident != null)
+                        if (instruction.arg0.ident != null)
                         {
-                            if (stringTable.ContainsKey(unprocessed_code[i].arg0.ident))
+                            if (stringTable.ContainsKey(instruction.arg0.ident))
                             {
                                 //string table
-                                unprocessed_code[i].arg0.offsetValue = 1;
+                                instruction.arg0.offsetValue = 1;
 
-                                stringTable[unprocessed_code[i].arg0.ident].Item2.Add(offset + 1);
+                                stringTable[instruction.arg0.ident].Item2.Add(offset + 1);
                             }
                         }
                     }
 
-                    unprocessed_code[i].offset = offset;
-                    offset += unprocessed_code[i].instruction.numberOfBytes(unprocessed_code[i].arg0,
-                        unprocessed_code[i].arg1, unprocessed_code[i].arg2);
+                    instruction.offset = offset;
+                    offset += instruction.instruction.numberOfBytes(instruction.arg0,
+                        instruction.arg1, instruction.arg2);
                 }
             }
 
@@ -712,7 +692,7 @@ namespace Assembler
             //resolve references for internal calls and jumps
             foreach (var unpr in unprocessed_code)
             {
-                if (unpr.ident.Equals("push") && unpr.arg0.type == x86InstructionSet.InstructionArg.LABEL)
+                if (unpr.ident.Equals("push") && unpr.arg0.type == InstructionArg.LABEL)
                 {
                     if (unpr.arg0.offsetValue != 1)
                     {
@@ -721,7 +701,7 @@ namespace Assembler
                             unpr.arg0.value = labels[unpr.arg0.ident] -
                                               (unpr.offset +
                                                unpr.instruction.numberOfBytes(unpr.arg0, unpr.arg1, unpr.arg2));
-                            unpr.arg0.type = x86InstructionSet.InstructionArg.IMM32;
+                            unpr.arg0.type = InstructionArg.IMM32;
                         }
                         else
                         {
@@ -862,34 +842,24 @@ namespace Assembler
             return tokens[index].lineNum < tokens[index + 1].lineNum;
         }
 
-        private bool isValidArgument(x86InstructionSet.Arg arg, int value)
+        private bool isValidArgument(Arg arg, int value)
         {
             return !(
                 //no arg, but an arg is required
-                ((arg == null && value != x86InstructionSet.InstructionArg.NONE)
+                ((arg == null && value != InstructionArg.NONE)
                     //an arg, but it doesn't match
                  || (arg != null && (arg.type & value) == 0))
                 );
         }
 
-        private string FormatWarning(string warning, int lineCounter, int linePosition)
+        private string FormatWarning(string warning, int lineCounter = 0, int linePosition = 0)
         {
             return string.Format("{0}:{1}:{2}: Warning: {3}", shortname, lineCounter, linePosition, warning);
         }
 
-        private string FormatError(string error, int lineCounter, int linePosition)
+        private string FormatError(string error, int lineCounter = 0, int linePosition = 0)
         {
             return string.Format("{0}:{1}:{2} Parse Error: {3}", shortname, lineCounter, linePosition, error);
-        }
-
-        private string FormatError(string error)
-        {
-            return string.Format("{0}: Parse Error: {1}", shortname, error);
-        }
-
-        private string FormatWarning(string warning)
-        {
-            return string.Format("{0}: Warning: {1}", shortname, warning);
         }
     }
 }

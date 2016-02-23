@@ -45,12 +45,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\Arg.cs" />
     <Compile Include="src\Assembler.cs" />
-    <Compile Include="src\Builder.cs" />
+    <Compile Include="src\Instructions.cs" />
     <Compile Include="src\CodeInformation.cs" />
+    <Compile Include="src\Instruction.cs" />
+    <Compile Include="src\InstructionArg.cs" />
     <Compile Include="src\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="src\Register.cs" />
+    <Compile Include="src\Registers.cs" />
     <Compile Include="src\Scanner.cs" />
+    <Compile Include="src\Token.cs" />
+    <Compile Include="src\UnprocessedInstruction.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

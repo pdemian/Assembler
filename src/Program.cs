@@ -31,7 +31,7 @@ namespace Assembler
 
                 if (string.IsNullOrWhiteSpace(arguments.FileIn))
                 {
-                    throw new Exception("Fatal Error: No iunput files.");
+                    throw new Exception("Fatal Error: No input files.");
                 }
                 if (!File.Exists(arguments.FileIn))
                 {

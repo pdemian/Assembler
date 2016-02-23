@@ -5,42 +5,6 @@ using System.Text;
 
 namespace Assembler
 {
-    internal class Token
-    {
-        public string str_value;
-        public object obj;
-
-        public int lineNum;
-        public int linePos;
-        public string source;
-
-        public Type type
-        {
-            get { return obj.GetType(); }
-        }
-
-        public static implicit operator string(Token t)
-        {
-            return t.str_value;
-        }
-
-        public override bool Equals(object obj)
-        {
-            return str_value.Equals(obj);
-        }
-
-        public override int GetHashCode()
-        {
-            return str_value.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return str_value;
-        }
-    }
-
-
     internal class Scanner
     {
         private string filename;
@@ -55,7 +19,7 @@ namespace Assembler
             warnings = new List<string>();
         }
 
-        public List<Token> Scan()
+        public void Scan()
         {
             tokens = new List<Token>();
 
@@ -63,7 +27,7 @@ namespace Assembler
 
             using (StreamReader reader = new StreamReader(filename))
             {
-                int next_char = -1;
+                int next_char;
 
                 int lineCounter = 1; //every newline
                 int linePosition = 0; //position on the line
@@ -111,7 +75,10 @@ namespace Assembler
                     {
                         for (next_char = reader.Read();
                             reader.Peek() > -1 && next_char != '\n';
-                            next_char = reader.Read()) ;
+                            next_char = reader.Read())
+                        {
+                            //do nothing
+                        }
 
                         lineCounter++;
                         linePosition = 0;
@@ -244,7 +211,6 @@ namespace Assembler
                     }
                 }
             }
-            return tokens;
         }
 
         private object ParseDigits(StreamReader reader, ref int linePosition, ref int lineCounter, char first_char)
